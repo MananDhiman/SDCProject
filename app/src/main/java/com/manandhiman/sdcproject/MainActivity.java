@@ -1,10 +1,13 @@
 package com.manandhiman.sdcproject;
 
 import android.app.ProgressDialog;
+import android.content.ContentResolver;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
+import android.webkit.MimeTypeMap;
 import android.widget.MediaController;
 import android.widget.Toast;
 
@@ -12,7 +15,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.google.android.gms.tasks.OnFailureListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -22,6 +24,7 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.manandhiman.sdcproject.databinding.ActivityMainBinding;
 
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -47,22 +50,33 @@ public class MainActivity extends AppCompatActivity {
         binding.buttonUpload.setOnClickListener(v -> uploadMedia());
 
         progressDialog = new ProgressDialog(this);
+        
+        binding.floatingActionButton.setOnClickListener(v -> activityShowAll());
+    }
+
+    private void activityShowAll() {
+        Intent i = new Intent(this, UploadedMediaActivity.class);
+        startActivity(i);
     }
 
     private void selectMedia(String mimeType) {
         int code = 0;
 
-        if(mimeType.equals("image/")){
-            code =100;
-            binding.imageView.setVisibility(View.VISIBLE);
-        }else if(mimeType.equals("video/")){
-            code = 101;
-            binding.videoView.setVisibility(View.VISIBLE);
-            MediaController mediaController = new MediaController(this);
-            mediaController.setAnchorView(binding.videoView);
-            binding.videoView.setMediaController(mediaController);
-        }else if(mimeType.equals("audio/")){
-            code = 102;
+        switch (mimeType) {
+            case "image/":
+                code = 100;
+                binding.imageView.setVisibility(View.VISIBLE);
+                break;
+            case "video/":
+                code = 101;
+                binding.videoView.setVisibility(View.VISIBLE);
+                MediaController mediaController = new MediaController(this);
+                mediaController.setAnchorView(binding.videoView);
+                binding.videoView.setMediaController(mediaController);
+                break;
+            case "audio/":
+                code = 102;
+                break;
         }
 
         Intent intent = new Intent();
@@ -81,7 +95,6 @@ public class MainActivity extends AppCompatActivity {
             }
             else if(requestCode == 101){
                 binding.videoView.setVideoURI(uri);
-            }else if(requestCode == 102){
             }
         }
         binding.buttonUpload.setVisibility(View.VISIBLE);
@@ -95,16 +108,20 @@ public class MainActivity extends AppCompatActivity {
         progressDialog.show();
 
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
-        Date now = new Date();
-        String fileName = format.format(now);
-        storageReference = FirebaseStorage.getInstance().getReference("images/"+fileName);
+        Date currentDate = new Date();
+        String fileName = format.format(currentDate);
+
+        storageReference = FirebaseStorage.getInstance().getReference("media/"+fileName);
         databaseReference = FirebaseDatabase.getInstance().getReference("notes");
+
+        Post post = new Post();
+        post.setNote(binding.editText.getText().toString());
+        post.setUrl(fileName);
 
         databaseReference.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                databaseReference.child(fileName).setValue(binding.editText.getText().toString());
-
+                databaseReference.child(String.valueOf(System.currentTimeMillis()/1000)).setValue(post);
             }
 
             @Override
@@ -115,15 +132,14 @@ public class MainActivity extends AppCompatActivity {
 
         storageReference.putFile(uri).addOnSuccessListener(taskSnapshot -> {
             uri = null;
+            binding.imageView.setImageURI(null);
+            binding.videoView.setVideoURI(null);
             Toast.makeText(MainActivity.this,"File Uploaded Successfully", Toast.LENGTH_SHORT).show();
             hideAllViews();
             progressDialog.dismiss();
-        }).addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception e) {
-                Toast.makeText(MainActivity.this,"Failed to Upload",Toast.LENGTH_SHORT).show();
-                progressDialog.dismiss();
-            }
+        }).addOnFailureListener(e -> {
+            Toast.makeText(MainActivity.this,"Failed to Upload",Toast.LENGTH_SHORT).show();
+            progressDialog.dismiss();
         });
     }
 
@@ -132,6 +148,19 @@ public class MainActivity extends AppCompatActivity {
         binding.buttonUpload.setVisibility(View.GONE);
         binding.imageView.setVisibility(View.GONE);
         binding.editText.setVisibility(View.GONE);
+    }
+
+    public static String getMimeType(Context context, Uri uri) {
+        String extension;
+
+        if (uri.getScheme().equals(ContentResolver.SCHEME_CONTENT)) {
+            final MimeTypeMap mime = MimeTypeMap.getSingleton();
+            extension = mime.getExtensionFromMimeType(context.getContentResolver().getType(uri));
+        } else {
+            extension = MimeTypeMap.getFileExtensionFromUrl(Uri.fromFile(new File(uri.getPath())).toString());
+        }
+
+        return extension;
     }
 
 }
