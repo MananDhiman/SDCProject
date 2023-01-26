@@ -7,64 +7,57 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
-import android.widget.Button;
-import android.widget.ImageView;
 import android.widget.MediaController;
 import android.widget.Toast;
-import android.widget.VideoView;
 
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
+import com.intentfilter.androidpermissions.NotificationSettings;
+import com.intentfilter.androidpermissions.PermissionManager;
+import com.manandhiman.sdcproject.databinding.ActivityMainBinding;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class MainActivity extends AppCompatActivity {
-    Button buttonSelectImage, buttonSelectVideo, buttonSelectAudio, buttonUpload;
-    ImageView imageView;
-    VideoView videoView;
 
     Uri uri;
     StorageReference storageReference;
+    ActivityMainBinding binding;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        binding = ActivityMainBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
 
-        buttonSelectImage = findViewById(R.id.buttonSelectImage);
-        buttonSelectVideo = findViewById(R.id.buttonSelectVideo);
-        buttonSelectAudio = findViewById(R.id.buttonSelectAudio);
-        buttonUpload = findViewById(R.id.buttonUpload);
+        binding.buttonSelectImage.setOnClickListener(v -> selectMedia("image/"));
+        binding.buttonSelectVideo.setOnClickListener(v -> selectMedia("video/"));
+        binding.buttonSelectAudio.setOnClickListener(v -> selectMedia("audio/"));
 
-        imageView = findViewById(R.id.imageView);
-        videoView = findViewById(R.id.videoView);
-
-        buttonSelectImage.setOnClickListener(v -> selectMedia("image/"));
-        buttonSelectVideo.setOnClickListener(v -> selectMedia("video/"));
-        buttonSelectAudio.setOnClickListener(v -> selectMedia("audio/"));
-
-        buttonUpload.setOnClickListener(v -> uploadMedia());
-
+        binding.buttonUpload.setOnClickListener(v -> uploadMedia());
     }
 
     private void selectMedia(String mimeType) {
         int code = 0;
+
         if(mimeType.equals("image/")){
-            imageView.setVisibility(View.VISIBLE);
-            videoView.setVisibility(View.GONE);
+            binding.imageView.setVisibility(View.VISIBLE);
+            binding.videoView.setVisibility(View.GONE);
             code =100;
         }else if(mimeType.equals("video/")){
             code = 101;
-            imageView.setVisibility(View.GONE);
-            videoView.setVisibility(View.VISIBLE);
+            binding.imageView.setVisibility(View.GONE);
+            binding.videoView.setVisibility(View.VISIBLE);
             MediaController mediaController = new MediaController(this);
-            mediaController.setAnchorView(videoView);
-            videoView.setMediaController(mediaController);
+            mediaController.setAnchorView(binding.videoView);
+            binding.videoView.setMediaController(mediaController);
         }else if(mimeType.equals("audio/")){
+            binding.imageView.setVisibility(View.GONE);
+            binding.videoView.setVisibility(View.GONE);
             code = 102;
         }
 
@@ -80,16 +73,14 @@ public class MainActivity extends AppCompatActivity {
         if(data !=null && data.getData() != null){
             uri = data.getData();
             if(requestCode == 100){
-                imageView.setImageURI(uri);
+                binding.imageView.setImageURI(uri);
             }
             else if(requestCode == 101){
-                videoView.setVideoURI(uri);
+                binding.videoView.setVideoURI(uri);
+            }else if(requestCode == 102){
             }
-
         }
-        buttonUpload.setVisibility(View.VISIBLE);
-        Log.v("APP", String.valueOf(uri));
-        Log.v("APP", String.valueOf(data));
+        binding.buttonUpload.setVisibility(View.VISIBLE);
     }
 
     private void uploadMedia() {
@@ -101,16 +92,19 @@ public class MainActivity extends AppCompatActivity {
         storageReference.putFile(uri).addOnSuccessListener(taskSnapshot -> {
             uri = null;
             Toast.makeText(MainActivity.this,"File Uploaded Successfully", Toast.LENGTH_SHORT).show();
+            hideAllViews();
         }).addOnFailureListener(new OnFailureListener() {
             @Override
             public void onFailure(@NonNull Exception e) {
                 Toast.makeText(MainActivity.this,"Failed to Upload",Toast.LENGTH_SHORT).show();
             }
         });
-
     }
 
-
-
+    private void hideAllViews(){
+        binding.buttonUpload.setVisibility(View.GONE);
+        binding.videoView.setVisibility(View.GONE);
+        binding.imageView.setVisibility(View.GONE);
+    }
 
 }
