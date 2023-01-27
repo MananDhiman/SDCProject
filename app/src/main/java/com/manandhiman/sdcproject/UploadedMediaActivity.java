@@ -20,7 +20,6 @@ import com.manandhiman.sdcproject.databinding.ActivityUploadedMediaBinding;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 public class UploadedMediaActivity extends AppCompatActivity {
 
@@ -36,16 +35,28 @@ public class UploadedMediaActivity extends AppCompatActivity {
         binding = ActivityUploadedMediaBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        postsArrayList.clear();
+        loadActivity();
+
+    }
+
+    private void loadActivity() {
 
         binding.recyclerView.setHasFixedSize(true);
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         //logExistingMedia();
         logExistingDBEntries();
+
     }
 
+//    @Override
+//    protected void onResume() {
+//        super.onResume();
+//        loadActivity();
+//    }
+
     private void logExistingDBEntries() {
+        postsArrayList.clear();
         databaseReference = FirebaseDatabase.getInstance().getReference("notes");
         databaseReference.addValueEventListener(new ValueEventListener() {
             @Override
@@ -55,11 +66,18 @@ public class UploadedMediaActivity extends AppCompatActivity {
 //                    Log.v("TAG value",""+ childDataSnapshot.getValue());
 
                     Map<String, Object> map = (HashMap<String, Object>) childDataSnapshot.getValue();
-                    if (map==null) return;
+                    if (map==null){
+                        Toast.makeText(UploadedMediaActivity.this, "No Existing Media", Toast.LENGTH_SHORT).show();
+                    }
 
                     Post post = new Post();
-                    post.setUrl(Objects.requireNonNull(map.get("url")).toString());
-                    post.setNote(Objects.requireNonNull(map.get("note")).toString());
+                    post.setUrl(map.get("url").toString());
+                    try {
+                        post.setNote(map.get("note").toString());
+                    }catch (NullPointerException e){
+                        post.setNote("No Note with this Media");
+                    }
+
                     postsArrayList.add(post);
                 }
                 postsAdapter = new PostsAdapter(UploadedMediaActivity.this, postsArrayList);
