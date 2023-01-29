@@ -23,7 +23,6 @@ import java.util.Map;
 
 public class UploadedMediaActivity extends AppCompatActivity {
 
-    StorageReference storageReference = FirebaseStorage.getInstance().getReference("media/");
     DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("notes");
     ActivityUploadedMediaBinding binding;
     public static ArrayList<Post> postsArrayList = new ArrayList<>();
@@ -36,7 +35,6 @@ public class UploadedMediaActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
 
         loadActivity();
-
     }
 
     private void loadActivity() {
@@ -44,16 +42,9 @@ public class UploadedMediaActivity extends AppCompatActivity {
         binding.recyclerView.setHasFixedSize(true);
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-        //logExistingMedia();
         logExistingDBEntries();
-
     }
 
-//    @Override
-//    protected void onResume() {
-//        super.onResume();
-//        loadActivity();
-//    }
 
     private void logExistingDBEntries() {
         postsArrayList.clear();
@@ -62,8 +53,6 @@ public class UploadedMediaActivity extends AppCompatActivity {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 for (DataSnapshot childDataSnapshot : snapshot.getChildren()) {
-//                    Log.v("TAG Key",""+ childDataSnapshot.getKey());
-//                    Log.v("TAG value",""+ childDataSnapshot.getValue());
 
                     Map<String, Object> map = (HashMap<String, Object>) childDataSnapshot.getValue();
                     if (map==null){
@@ -90,18 +79,5 @@ public class UploadedMediaActivity extends AppCompatActivity {
             }
         });
     }
-
-    private void logExistingMedia() {
-        storageReference.listAll().addOnSuccessListener(listResult -> {
-            for(StorageReference prefix: listResult.getPrefixes()){
-                Log.v("listresult prefix", String.valueOf(prefix));
-            }
-            for(StorageReference item: listResult.getItems()){
-                Log.v("listresult item", String.valueOf(item));
-            }
-        })
-                .addOnFailureListener(e -> Toast.makeText(UploadedMediaActivity.this, "Some Error Occured", Toast.LENGTH_SHORT).show());
-    }
-
 
 }

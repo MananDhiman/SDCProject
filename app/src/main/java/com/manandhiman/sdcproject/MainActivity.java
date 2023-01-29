@@ -1,30 +1,22 @@
 package com.manandhiman.sdcproject;
 
 import android.app.ProgressDialog;
-import android.content.ContentResolver;
-import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
-import android.webkit.MimeTypeMap;
 import android.widget.MediaController;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.manandhiman.sdcproject.databinding.ActivityMainBinding;
 
-import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -102,6 +94,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void uploadMedia() {
+        if(uri == null){
+            Toast.makeText(this, "Please Select a File to Upload", Toast.LENGTH_SHORT).show();
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            finish();
+            startActivity(getIntent());
+            return;
+        }
 
         progressDialog.setTitle("Uploading");
         progressDialog.setMessage("Please wait while we upload the selected media");
@@ -118,20 +121,10 @@ public class MainActivity extends AppCompatActivity {
         post.setNote(binding.editText.getText().toString());
         post.setUrl(fileName);
 
-        databaseReference.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                databaseReference.child(String.valueOf(System.currentTimeMillis()/1000)).setValue(post);
-            }
+        databaseReference.child(String.valueOf(System.currentTimeMillis()/1000)).setValue(post);
 
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(MainActivity.this,"Failed to Upload",Toast.LENGTH_SHORT).show();
-            }
-        });
 
         storageReference.putFile(uri).addOnSuccessListener(taskSnapshot -> {
-            uri = null;
             binding.imageView.setImageURI(null);
             binding.videoView.setVideoURI(null);
             Toast.makeText(MainActivity.this,"File Uploaded Successfully", Toast.LENGTH_SHORT).show();
@@ -141,6 +134,7 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(MainActivity.this,"Failed to Upload",Toast.LENGTH_SHORT).show();
             progressDialog.dismiss();
         });
+        uri = null;
     }
 
     private void hideAllViews(){
@@ -148,19 +142,6 @@ public class MainActivity extends AppCompatActivity {
         binding.buttonUpload.setVisibility(View.GONE);
         binding.imageView.setVisibility(View.GONE);
         binding.editText.setVisibility(View.GONE);
-    }
-
-    public static String getMimeType(Context context, Uri uri) {
-        String extension;
-
-        if (uri.getScheme().equals(ContentResolver.SCHEME_CONTENT)) {
-            final MimeTypeMap mime = MimeTypeMap.getSingleton();
-            extension = mime.getExtensionFromMimeType(context.getContentResolver().getType(uri));
-        } else {
-            extension = MimeTypeMap.getFileExtensionFromUrl(Uri.fromFile(new File(uri.getPath())).toString());
-        }
-
-        return extension;
     }
 
 }
